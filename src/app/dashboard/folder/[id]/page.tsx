@@ -66,35 +66,51 @@ export default async function FolderPage({ params }: { params: { id: string } })
                                 <tr className="border-b border-white/10 text-sm font-medium text-muted-foreground bg-white/5">
                                     <th className="p-4">File Name</th>
                                     <th className="p-4">Extracted Type</th>
+                                    <th className="p-4">Extracted Data</th>
                                     <th className="p-4">Status</th>
                                     <th className="p-4 w-12 text-center">Delete</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {documents?.map(doc => (
-                                    <tr key={doc.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                        <td className="p-4 font-medium text-sm">
-                                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-2 max-w-[200px] truncate" title={doc.file_name}>
-                                                <FileText className="w-4 h-4 shrink-0" />
-                                                <span className="truncate">{doc.file_name}</span>
-                                            </a>
-                                        </td>
-                                        <td className="p-4 text-sm capitalize text-muted-foreground">{doc.document_type || 'Unknown'}</td>
-                                        <td className="p-4 text-sm">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'completed' ? 'bg-green-500/20 text-green-400' : doc.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                                                {doc.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <form action={deleteDocument}>
-                                                <input type="hidden" name="id" value={doc.id} />
-                                                <button type="submit" className="text-red-500/70 hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-500/10">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {documents?.map(doc => {
+                                    const fileUrl = doc.file_url?.startsWith('http')
+                                        ? doc.file_url
+                                        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/scans/${doc.file_url}`;
+
+                                    return (
+                                        <tr key={doc.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                            <td className="p-4 font-medium text-sm">
+                                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-2 max-w-[200px] truncate" title={doc.file_name}>
+                                                    <FileText className="w-4 h-4 shrink-0" />
+                                                    <span className="truncate">{doc.file_name}</span>
+                                                </a>
+                                            </td>
+                                            <td className="p-4 text-sm capitalize text-muted-foreground">{doc.document_type || 'Unknown'}</td>
+                                            <td className="p-4 text-sm max-w-[250px]">
+                                                {doc.extracted_data ? (
+                                                    <div className="truncate text-xs font-mono bg-black/40 p-2 rounded border border-white/10 overflow-hidden cursor-help" title={JSON.stringify(doc.extracted_data, null, 2)}>
+                                                        {JSON.stringify(doc.extracted_data)}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs italic">Awaiting OCR...</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-sm">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'completed' ? 'bg-green-500/20 text-green-400' : doc.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                                    {doc.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <form action={deleteDocument}>
+                                                    <input type="hidden" name="id" value={doc.id} />
+                                                    <button type="submit" className="text-red-500/70 hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-500/10">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>
