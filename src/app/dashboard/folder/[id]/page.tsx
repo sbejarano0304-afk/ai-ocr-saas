@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FolderHeart, FileText, Trash2 } from 'lucide-react'
 import { UploadDropzone } from '@/components/UploadDropzone'
+import { ExtractedDataModal } from '@/components/ExtractedDataModal'
 import { deleteDocument } from '../../actions'
 
 export default async function FolderPage({ params }: { params: { id: string } }) {
@@ -73,9 +74,10 @@ export default async function FolderPage({ params }: { params: { id: string } })
                             </thead>
                             <tbody>
                                 {documents?.map(doc => {
-                                    const fileUrl = doc.file_url?.startsWith('http')
-                                        ? doc.file_url
-                                        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/scans/${doc.file_url}`;
+                                    let fileUrl = doc.file_url;
+                                    if (fileUrl && !fileUrl.startsWith('http')) {
+                                        fileUrl = supabase.storage.from('scans').getPublicUrl(fileUrl).data.publicUrl;
+                                    }
 
                                     return (
                                         <tr key={doc.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
@@ -88,9 +90,7 @@ export default async function FolderPage({ params }: { params: { id: string } })
                                             <td className="p-4 text-sm capitalize text-muted-foreground">{doc.document_type || 'Unknown'}</td>
                                             <td className="p-4 text-sm max-w-[250px]">
                                                 {doc.extracted_data ? (
-                                                    <div className="truncate text-xs font-mono bg-black/40 p-2 rounded border border-white/10 overflow-hidden cursor-help" title={JSON.stringify(doc.extracted_data, null, 2)}>
-                                                        {JSON.stringify(doc.extracted_data)}
-                                                    </div>
+                                                    <ExtractedDataModal data={doc.extracted_data} />
                                                 ) : (
                                                     <span className="text-muted-foreground text-xs italic">Awaiting OCR...</span>
                                                 )}
