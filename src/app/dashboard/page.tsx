@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LogOut, FolderHeart, FileUp, Settings, CreditCard } from 'lucide-react'
+import { LogOut, FolderHeart, FileUp, Settings, CreditCard, FileText, Trash2 } from 'lucide-react'
 import { signout } from '@/app/login/actions'
+import { createFolder, deleteFolder, deleteDocument } from './actions'
 import { UploadDropzone } from '@/components/UploadDropzone'
 
 export default async function DashboardPage() {
@@ -14,9 +15,14 @@ export default async function DashboardPage() {
         redirect('/login')
     }
 
-    // Fetch the patient folders created by this clinic employee
     const { data: folders } = await supabase
         .from('patient_folders')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    // Fetch the documents for this user via RLS
+    const { data: documents } = await supabase
+        .from('documents')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -59,10 +65,13 @@ export default async function DashboardPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Patient Folders</h1>
                         <p className="text-muted-foreground mt-1">Manage documents & scans for Pinoy Medical Office patients.</p>
                     </div>
-                    <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md font-medium transition-colors">
-                        <FolderHeart className="w-4 h-4" />
-                        New Folder
-                    </button>
+                    <form action={createFolder} className="flex items-center gap-2">
+                        <input type="text" name="folderName" placeholder="New Patient Name" required className="px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-foreground focus:outline-none focus:border-primary/50" />
+                        <button type="submit" className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md font-medium transition-colors">
+                            <FolderHeart className="w-4 h-4" />
+                            Create Folder
+                        </button>
+                    </form>
                 </header>
 
                 {/* Upload Zone (Temporarily placed here for testing) */}
@@ -97,6 +106,12 @@ export default async function DashboardPage() {
                                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                             <FolderHeart className="w-5 h-5" />
                                         </div>
+                                        <form action={deleteFolder}>
+                                            <input type="hidden" name="id" value={folder.id} />
+                                            <button type="submit" className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors opacity-0 group-hover:opacity-100" title="Delete Folder">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </form>
                                     </div>
                                     <h3 className="font-semibold text-lg">{folder.patient_name}</h3>
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -104,6 +119,58 @@ export default async function DashboardPage() {
                                     </p>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Documents List */}
+                <div className="mt-12">
+                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-primary" />
+                        Processed Documents
+                    </h2>
+                    {documents?.length === 0 ? (
+                        <div className="text-center py-12 border border-dashed border-white/10 rounded-xl glass">
+                            <p className="text-sm text-muted-foreground">No documents processed yet.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto glass border border-white/10 rounded-xl">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-white/10 text-sm font-medium text-muted-foreground bg-white/5">
+                                        <th className="p-4">File Name</th>
+                                        <th className="p-4">Extracted Type</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4 w-12 text-center">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {documents?.map(doc => (
+                                        <tr key={doc.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                            <td className="p-4 font-medium text-sm">
+                                                <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-2 max-w-[200px] truncate" title={doc.file_name}>
+                                                    <FileText className="w-4 h-4 shrink-0" />
+                                                    <span className="truncate">{doc.file_name}</span>
+                                                </a>
+                                            </td>
+                                            <td className="p-4 text-sm capitalize text-muted-foreground">{doc.document_type || 'Unknown'}</td>
+                                            <td className="p-4 text-sm">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'completed' ? 'bg-green-500/20 text-green-400' : doc.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                                    {doc.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <form action={deleteDocument}>
+                                                    <input type="hidden" name="id" value={doc.id} />
+                                                    <button type="submit" className="text-red-500/70 hover:text-red-500 transition-colors p-2 rounded-md hover:bg-red-500/10">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>
