@@ -51,13 +51,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 });
         }
 
+        const { data: { publicUrl } } = supabase.storage.from("scans").getPublicUrl(filePath);
+
         // 2. Create the Document record in Postgres
         const { data: documentData, error: dbError } = await supabase
             .from("documents")
             .insert({
                 folder_id: folderId,
                 file_name: file.name,
-                file_url: filePath,
+                file_url: publicUrl,
                 status: "pending"
             })
             .select()

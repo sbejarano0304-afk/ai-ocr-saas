@@ -13,6 +13,8 @@ interface UploadDropzoneProps {
 
 export function UploadDropzone({ folders, defaultFolderId, folderId }: UploadDropzoneProps) {
     const [selectedFolderId, setSelectedFolderId] = useState<string>(folderId || defaultFolderId || "");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isDragActive, setIsDragActive] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -22,8 +24,14 @@ export function UploadDropzone({ folders, defaultFolderId, folderId }: UploadDro
     useEffect(() => {
         if (!selectedFolderId && folders && folders.length > 0) {
             setSelectedFolderId(folders[0].id);
+            setSearchQuery(folders[0].patient_name);
+        } else if (selectedFolderId && folders && !searchQuery) {
+            const f = folders.find(f => f.id === selectedFolderId);
+            if (f) setSearchQuery(f.patient_name);
         }
-    }, [folders, selectedFolderId]);
+    }, [folders, selectedFolderId, searchQuery]);
+
+    const filteredFolders = folders?.filter(f => f.patient_name.toLowerCase().includes(searchQuery.toLowerCase())) || [];
 
     const handleDragEnter = (e: React.DragEvent) => {
         e.preventDefault();
@@ -180,18 +188,45 @@ export function UploadDropzone({ folders, defaultFolderId, folderId }: UploadDro
                     {!file && status !== 'success' && status !== 'uploading' && (
                         <div className="flex flex-col gap-4 mt-4 relative z-20 items-center">
                             {folders && folders.length > 0 && (
-                                <div className="text-left w-full max-w-xs">
+                                <div className="text-left w-full max-w-xs relative">
                                     <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-2 text-center">Assign to Patient Folder</label>
-                                    <select
-                                        value={selectedFolderId}
-                                        onChange={(e) => setSelectedFolderId(e.target.value)}
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setIsDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setIsDropdownOpen(true)}
+                                        onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                                        placeholder="Search patient name..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-md py-2.5 px-3 text-sm text-foreground focus:outline-none focus:border-primary/50 text-center"
                                         onClick={(e) => e.stopPropagation()}
-                                        className="w-full bg-black/40 border border-white/10 rounded-md py-2.5 px-3 text-sm text-foreground focus:outline-none focus:border-primary/50 cursor-pointer text-center"
-                                    >
-                                        {folders.map(f => (
-                                            <option key={f.id} value={f.id}>{f.patient_name}</option>
-                                        ))}
-                                    </select>
+                                    />
+                                    {isDropdownOpen && (
+                                        <div className="absolute top-full mt-1 w-full bg-[#111] border border-white/10 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
+                                            {filteredFolders.length > 0 ? (
+                                                filteredFolders.map(f => (
+                                                    <div
+                                                        key={f.id}
+                                                        className={cn("px-4 py-2 text-sm cursor-pointer hover:bg-primary/20 transition-colors text-center border-b border-white/5 last:border-0", selectedFolderId === f.id && "bg-primary/10 text-primary")}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedFolderId(f.id);
+                                                            setSearchQuery(f.patient_name);
+                                                            setIsDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        {f.patient_name}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                                                    No patient found. <br /> Create the folder above.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             <button
