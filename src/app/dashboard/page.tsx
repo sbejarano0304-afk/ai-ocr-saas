@@ -81,7 +81,7 @@ export default async function DashboardPage() {
                         Quick Upload Scan
                     </h2>
                     {folders && folders.length > 0 ? (
-                        <UploadDropzone folderId={folders[0].id} />
+                        <UploadDropzone folders={folders} />
                     ) : (
                         <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-balance text-muted-foreground">
                             Create a patient folder first to upload documents!
@@ -101,7 +101,7 @@ export default async function DashboardPage() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {folders?.map((folder) => (
-                                <div key={folder.id} className="p-4 border border-white/10 rounded-xl glass hover:border-primary/50 transition-colors cursor-pointer group">
+                                <Link href={`/dashboard/folder/${folder.id}`} key={folder.id} className="p-4 border border-white/10 rounded-xl glass hover:border-primary/50 transition-colors cursor-pointer group block relative">
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                             <FolderHeart className="w-5 h-5" />
@@ -117,7 +117,7 @@ export default async function DashboardPage() {
                                     <p className="text-xs text-muted-foreground mt-1">
                                         Created {new Date(folder.created_at).toLocaleDateString()}
                                     </p>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
